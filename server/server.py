@@ -40,7 +40,7 @@ def save_to_db(motion_state):
 
 def send_to_telegram(motion_state):
     try:
-        text = f"Motion detected: {motion_state}"
+        text = f"⚠️ Motion detected ⚠️"
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
         requests.post(url, json=payload, timeout=5)
