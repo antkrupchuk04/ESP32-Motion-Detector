@@ -40,7 +40,7 @@ def save_to_db(motion_state):
 
 def send_to_telegram(motion_state):
     try:
-        text = f"⚠️ Motion detected ⚠️"
+        text = f"⚠️ Motion detected ⚠️" if motion_state else "No motion"
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
         requests.post(url, json=payload, timeout=5)
@@ -58,6 +58,28 @@ def motion():
     send_to_telegram(motion_state)
 
     return {"status": "ok"}, 200
+
+@app.route("/motion/latest", methods=["GET"])
+def latest_motion_events():
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT * FROM motion_events ORDER BY timestamp DESC LIMIT 5"
+        )
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return {"latest_events": rows}, 200
+    except Exception as e:
+        print("DB error:", e)
+        return {"error": "Database error"}, 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 12345))
