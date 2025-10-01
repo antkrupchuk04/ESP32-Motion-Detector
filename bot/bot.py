@@ -1,5 +1,7 @@
 import os
 import requests
+from datetime import datetime
+import pytz
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -7,6 +9,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 # --- Ваш Flask сервер (де розгорнутий ендпоінт) ---
 FLASK_SERVER_URL = os.environ.get("FLASK_SERVER_URL")  # Наприклад: http://yourserver.com:12345
+
+KYIV_TZ = pytz.timezone("Europe/Kiev")
 
 # Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -31,9 +35,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     text = "Останні 5 подій руху:\n"
                     for event in data:
-                        ts = event.get("timestamp")
+                        ts_str = event.get("timestamp")
                         motion = event.get("motion")
-                        text += f"- {ts}: {'⚠️ Рух' if motion else '❌ Немає руху'}\n"
+
+                        # Конвертація у datetime + Kyiv timezone
+                        try:
+                            ts_utc = datetime.fromisoformat(ts_str)  # з рядка ISO з сервера
+                            ts_kyiv = ts_utc.astimezone(KYIV_TZ)
+                            ts_formatted = ts_kyiv.strftime("%Y-%m-%d %H:%M:%S")
+                        except Exception:
+                            ts_formatted = ts_str  # якщо конвертація не вдасться
+
+                        text += f"- {ts_formatted}: {'⚠️ Рух' if motion else '❌ Немає руху'}\n"
             else:
                 text = "Помилка при отриманні даних з сервера."
         except Exception as e:
