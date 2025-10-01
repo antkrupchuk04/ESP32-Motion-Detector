@@ -18,6 +18,31 @@ DB_PASSWORD = os.environ.get("DB_PASSWORD")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
+def init_db():
+    """Створює таблицю motion_events, якщо її ще немає"""
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS motion_events (
+                id SERIAL PRIMARY KEY,
+                motion BOOLEAN NOT NULL,
+                timestamp TIMESTAMP NOT NULL
+            )
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("DB initialized successfully")
+    except Exception as e:
+        print("DB initialization error:", e)
+
 def save_to_db(motion_state):
     try:
         conn = psycopg2.connect(
@@ -82,5 +107,6 @@ def latest_motion_events():
         return {"error": "Database error"}, 500
 
 if __name__ == "__main__":
+    init_db()  # ініціалізація таблиці при старті сервера
     port = int(os.environ.get("PORT", 12345))
     app.run(host="0.0.0.0", port=port)
